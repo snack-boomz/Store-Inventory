@@ -1,2 +1,8 @@
+# 4. Create a .gitignore file
+# Create a new file in your project directory called .gitignore. 
+# Add your virtual environment folder (usually "env") to the .gitignore file. 
+# Add __pycache__ to the .gitignore file.
+
 env
 __pycache__
+unit4.code-workspace
