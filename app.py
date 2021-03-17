@@ -1,13 +1,19 @@
+#!/usr/bin/env python3
+
 # 5. Create your application file
 # Create a new file in your project directory called app.py. 
 # Be sure to import the appropriate Python and Peewee modules at the top of this file.
 
+import datetime
+import csv
+
 from peewee import *
+
 
 # 6. Initialize your Sqlite database
 # Initialize a Sqlite database called inventory.db.
 
-db = Sqlitedatabase("inventory.db")
+db = SqliteDatabase("inventory.db")
 
 # 7. Create your Product model
 # Create a model called Product that the Peewee ORM will use to build the database. 
@@ -31,6 +37,33 @@ class Product(Model):
     class Meta:
         database = db
 
+
+def load_csv():
+
+    with open('inventory.csv', newline='') as csvfile:
+        artreader = csv.DictReader(csvfile, delimiter=',')
+        rows = list(artreader)
+        counter = 0
+        # 27 total products
+        for row in rows:
+            print(row)
+            try:
+                Product.create(
+                               product_name=row['product_name'],
+                               product_price=row['product_price'],
+                               product_quantity=row['product_quantity'],
+                               date_updated=row['date_updated'])
+            # referenced from students.py exercise
+            except IntegrityError:
+                pass
+
+def print_table():
+    pass
+    products = Product.select()
+    for product in products:
+        print(product.date_updated)
+
+
 # 8. Connect the database and create tables
     #  In your dunder main method:
     # 1 Ensure you are connected to the database you created/initialized
@@ -39,7 +72,9 @@ class Product(Model):
 
 if __name__ == "__main__":
     db.connect()
-    db
+    db.create_tables([Product], safe=True)
+    load_csv()
+    #print_table()
 
-    menu_loop()
+   # menu_loop()
 
