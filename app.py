@@ -6,7 +6,9 @@
 
 import datetime
 import csv
+import os
 
+from collections import OrderedDict
 from peewee import *
 
 
@@ -30,8 +32,8 @@ class Product(Model):
 
     product_id = AutoField()
     product_name = TextField()
-    product_quantity = TextField()
-    product_price = TextField()
+    product_quantity = IntegerField()
+    product_price = IntegerField()
     date_updated = DateTimeField(default=datetime.datetime.now)
 
     class Meta:
@@ -45,24 +47,115 @@ def load_csv():
         rows = list(artreader)
         counter = 0
         # 27 total products
+
+        # Convert product_price format from $0.00 to 000
         for row in rows:
-            print(row)
-            try:
-                Product.create(
-                               product_name=row['product_name'],
-                               product_price=row['product_price'],
-                               product_quantity=row['product_quantity'],
-                               date_updated=row['date_updated'])
-            # referenced from students.py exercise
-            except IntegrityError:
-                pass
+            # https://www.w3schools.com/python/ref_string_strip.asp
+            if row['product_price']:
+                list_row = list(row['product_price'])
+                for character in list_row:
+                    if character == "$" or character == ".":
+                        list_row.remove(character)
+                row['product_price'] = "".join(list_row)
+
+            Product.create(product_name=row['product_name'],
+                            product_price=row['product_price'],
+                            product_quantity=row['product_quantity'],
+                            date_updated=row['date_updated'])
+        print("product created")
+
+def clear():
+    """Clear the menu"""
+    ## Referenced from diary.py project, Unit 4
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def remove_db():
+    """Utilized to prevent multiple databases being initialized/created."""
+    os.system('rm inventory.db')
 
 def print_table():
-    pass
-    products = Product.select()
-    for product in products:
-        print(product.date_updated)
+    products = Product.select().order_by(Product.product_price.desc()).get()
+    print(products)
 
+def menu_loop():
+    """Show the menu"""
+    choice = None
+
+    while choice != 'q':
+        clear()
+        print("Enter 'q' to quit the application.\n")
+        for key, value in menu.items():
+            print('{}) {}.'.format(key, value.__doc__))
+        choice = input('\nInput a choice: ').lower().strip()
+
+        if choice in menu:
+            clear()
+            menu[choice]()
+        
+
+def view_single_product():
+    """View a single product in the inventory"""
+    # 12. Displaying a product by its ID - Menu Option V
+        # Create a function to handle getting and displaying a product
+        #  by its product_id.
+    loop = True
+    while loop:    
+        try:
+            search_query = int(input("\nEnter a Product ID: "))
+        
+            if search_query > 1000:
+                raise OverflowError("Your integer is out of range. Enter an integer under 1000.")
+
+        except ValueError as err:
+            # Referenced from unit 1 error handling
+            print("That input is not valid. Please enter an integer.")
+            print("Error: {}".format(err))
+
+        except OverflowError as err:
+            print("That input is not valid.")
+            print("Error: {}".format(err))
+            
+        else:
+            selection = Product.select()
+            search_results = selection.where(Product.product_id == search_query)
+            if search_results:
+
+                for search_result in search_results:
+
+                    print("\nSearch Result: \n")
+                    print('='*len(search_result.product_name),"\n")
+                    print("{}\nQuantity: {}\nCost in Cents: {}\nDate Updated: {}".format
+                                                        (search_result.product_name,
+                                                        search_result.product_quantity,
+                                                        search_result.product_price,
+                                                        search_result.date_updated))
+                    input("\nPress [Enter] to continue..")
+                    loop = False
+            else:
+                print("There is no product with that ID, please enter another product ID.")
+
+def add_product():
+    """Add a product to the inventory"""
+    pass
+
+def make_backup():
+    """Backup the contents of the database"""
+    pass
+
+# Referenced from diary.py project, Unit 4
+
+# 11. Create a Menu to make selections
+  # Create a function to handle interaction with the user of your app. 
+  # This function should prompt the user to enter v in order to view the details of 
+  # a single product in the database, a to add a new product to the database, 
+  # or b to make a backup of the entire contents of the database.
+
+
+menu = OrderedDict([
+    ('a', add_product),
+    ('b', make_backup),
+    ('v', view_single_product),
+    ])
 
 # 8. Connect the database and create tables
     #  In your dunder main method:
@@ -71,10 +164,11 @@ def print_table():
     # 3 Run the application so the user can make menu choices and interact with the application.
 
 if __name__ == "__main__":
+    remove_db()
     db.connect()
     db.create_tables([Product], safe=True)
     load_csv()
-    #print_table()
+    menu_loop()
 
    # menu_loop()
 
