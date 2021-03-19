@@ -4,13 +4,13 @@
 # Create a new file in your project directory called app.py. 
 # Be sure to import the appropriate Python and Peewee modules at the top of this file.
 
+import time
 import datetime
 import csv
 import os
 
 from collections import OrderedDict
 from peewee import *
-
 
 # 6. Initialize your Sqlite database
 # Initialize a Sqlite database called inventory.db.
@@ -39,7 +39,6 @@ class Product(Model):
     class Meta:
         database = db
 
-
 def load_csv():
 
     with open('inventory.csv', newline='') as csvfile:
@@ -50,13 +49,17 @@ def load_csv():
 
         # Convert product_price format from $0.00 to 000
         for row in rows:
-            # https://www.w3schools.com/python/ref_string_strip.asp
             if row['product_price']:
                 list_row = list(row['product_price'])
                 for character in list_row:
                     if character == "$" or character == ".":
                         list_row.remove(character)
                 row['product_price'] = "".join(list_row)
+            # referenced from https://www.programiz.com/python-programming/datetime/strptime
+            # convert the date_updated format to a datetime object
+            if row['date_updated']:
+                datetime_object = datetime.datetime.strptime(row['date_updated'], "%m/%d/%Y")
+                row['date_updated'] = datetime_object
 
             Product.create(product_name=row['product_name'],
                             product_price=row['product_price'],
@@ -73,26 +76,35 @@ def remove_db():
     """Utilized to prevent multiple databases being initialized/created."""
     os.system('rm inventory.db')
 
-def print_table():
-    products = Product.select().order_by(Product.product_price.desc()).get()
-    print(products)
-
 def menu_loop():
     """Show the menu"""
     choice = None
 
     while choice != 'q':
         clear()
+        print("""
+        ╭━━━╮╱╱╱╭╮╭╮╱╱╱╱╱╱╱╱╭━━━━╮╱╱╱╱╭╮╱╭━━━╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭╮╱╭╮╱╱╱╭╮╱╭╮╱╭╮
+        ┃╭━╮┃╱╱╭╯╰┫┃╱╱╱╱╱╱╱╱┃╭╮╭╮┃╱╱╱╱┃┃╱╰╮╭╮┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱┃┃╱┃┃╱╱╭╯╰╮┃┃╱┃┃
+        ┃╰━╯┣╮╱┣╮╭┫╰━┳━━┳━╮╱╰╯┃┃┣┻━┳━━┫╰━╮┃┃┃┣━━┳━━┳━┳━━┳━━╮┃┃╱┃┣━╮┣╮╭╯┃╰━╯┃
+        ┃╭━━┫┃╱┃┃┃┃╭╮┃╭╮┃╭╮╮╱╱┃┃┃┃━┫╭━┫╭╮┃┃┃┃┃┃━┫╭╮┃╭┫┃━┫┃━┫┃┃╱┃┃╭╮╋┫┃╱╰━━╮┃
+        ┃┃╱╱┃╰━╯┃╰┫┃┃┃╰╯┃┃┃┃╱╱┃┃┃┃━┫╰━┫┃┃┣╯╰╯┃┃━┫╰╯┃┃┃┃━┫┃━┫┃╰━╯┃┃┃┃┃╰╮╱╱╱┃┃
+        ╰╯╱╱╰━╮╭┻━┻╯╰┻━━┻╯╰╯╱╱╰╯╰━━┻━━┻╯╰┻━━━┻━━┻━╮┣╯╰━━┻━━╯╰━━━┻╯╰┻┻━╯╱╱╱╰╯
+        ╱╱╱╱╭━╯┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+        ╱╱╱╱╰━━╯╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯                                                                                                                                                                   
+        """, "\n")
+        print("== Welcome to the Store Inventory. ==\n")
+        
         print("Enter 'q' to quit the application.\n")
         for key, value in menu.items():
             print('{}) {}.'.format(key, value.__doc__))
         choice = input('\nInput a choice: ').lower().strip()
-
         if choice in menu:
             clear()
             menu[choice]()
+        else:
+            print("That isn't a valid menu option. Please try again.")
+            input("Press [ENTER] to continue..")
         
-
 def view_single_product():
     """View a single product in the inventory"""
     # 12. Displaying a product by its ID - Menu Option V
@@ -136,11 +148,77 @@ def view_single_product():
 
 def add_product():
     """Add a product to the inventory"""
-    pass
+    global loop 
+    loop = True
+    while loop:
+        try:
+            product_name = str(input("Enter your product name, [ENTER] when finished: "))
+
+            if len(product_name) < 1:
+                raise ValueError("Your product name cannot be blank, please give it a name.")
+
+            elif product_name.isnumeric():
+                raise ValueError("Your product name must be a string.")
+
+            product_quantity = int(input("Enter your product quantity, [ENTER] when finished: "))
+            product_price = input("Enter your product price (format: 0.00), [ENTER] when finished: $")
+            
+            if product_price:
+                list_product_price = list(product_price)
+                for character in list_product_price:
+                    if character == "$" or character == ".":
+                        list_product_price.remove(character)
+                product_price = int("".join(list_product_price))
+
+            for product in Product.select():
+                if product.product_name == product_name:
+                    product_record = Product.get(product_name=product_name)
+                    product_record.product_quantity = product_quantity
+                    product_record.product_price = product_price
+                    product_record.date_updated = datetime.datetime.now()
+                    product_record.save()
+                    raise IntegrityError("duplicate item")
+
+
+        except IntegrityError as err:
+            input("\nYour product has been updated, as this product already existed in inventory. Press [Enter] to continue..")
+            loop = False
+
+        except ValueError as err:
+            # Referenced from unit 1 error handling
+            print("\nThat input is not valid. Please try again.")
+            print("Error: {}".format(err) + "\n")
+
+        else:
+
+            Product.create(product_name=product_name,
+                    product_quantity=product_quantity,
+                    product_price=product_price)
+            input("\nYour product has been created! Press [Enter] to continue..")
+            loop = False
+            break
 
 def make_backup():
     """Backup the contents of the database"""
-    pass
+    loop = True
+    while loop:
+        try:
+            os.system("rm -f backup.csv")
+            os.system("touch backup.csv")
+            products = Product.select()
+            print("Backing up current inventory...\n")
+            
+            with open("backup.csv", "a") as file:
+                file.write("product_id,product_name,product_quantity,product_price,date_updated\n")
+                for product in products:
+                    product_line = "{},{},{},{},{}".format(product.product_id,product.product_name,product.product_quantity,product.product_price,product.date_updated)
+                    file.write(product_line+"\n")
+            time.sleep(2)
+            input("Backup successful! Press [ENTER] to continue..")
+            loop = False
+
+        except:
+            pass
 
 # Referenced from diary.py project, Unit 4
 
@@ -149,7 +227,6 @@ def make_backup():
   # This function should prompt the user to enter v in order to view the details of 
   # a single product in the database, a to add a new product to the database, 
   # or b to make a backup of the entire contents of the database.
-
 
 menu = OrderedDict([
     ('a', add_product),
@@ -169,6 +246,3 @@ if __name__ == "__main__":
     db.create_tables([Product], safe=True)
     load_csv()
     menu_loop()
-
-   # menu_loop()
-
