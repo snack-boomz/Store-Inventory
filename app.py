@@ -31,7 +31,7 @@ class Product(Model):
     # auto-incrementing primary key named “id”. "
 
     product_id = AutoField()
-    product_name = TextField()
+    product_name = TextField(unique=True)
     product_quantity = IntegerField()
     product_price = IntegerField()
     date_updated = DateTimeField(default=datetime.datetime.now)
@@ -60,12 +60,18 @@ def load_csv():
             if row['date_updated']:
                 datetime_object = datetime.datetime.strptime(row['date_updated'], "%m/%d/%Y")
                 row['date_updated'] = datetime_object
+            
+            try:
+                Product.create(product_name=row['product_name'],
+                                product_price=row['product_price'],
+                                product_quantity=row['product_quantity'],
+                                date_updated=row['date_updated'])
 
-            Product.create(product_name=row['product_name'],
-                            product_price=row['product_price'],
-                            product_quantity=row['product_quantity'],
-                            date_updated=row['date_updated'])
-        print("product created")
+            except IntegrityError:
+                    product_record = Product.get(product_name=row['product_name'])
+                    product_record.product_quantity = row['product_quantity']
+                    product_record.product_price = row['product_price']
+                    product_record.save()       
 
 def clear():
     """Clear the menu"""
