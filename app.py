@@ -61,6 +61,7 @@ def load_csv():
                 datetime_object = datetime.datetime.strptime(row['date_updated'], "%m/%d/%Y")
                 row['date_updated'] = datetime_object
             
+
             try:
                 Product.create(product_name=row['product_name'],
                                 product_price=row['product_price'],
@@ -68,10 +69,24 @@ def load_csv():
                                 date_updated=row['date_updated'])
 
             except IntegrityError:
-                    product_record = Product.get(product_name=row['product_name'])
-                    product_record.product_quantity = row['product_quantity']
-                    product_record.product_price = row['product_price']
-                    product_record.save()       
+                product_record = Product.get(product_name=row['product_name'])
+                if product_record.product_name == row['product_name']:
+                    # I used the print statements below to figure out how to reference 
+                    # the original item versus the duplicate item, in order to figure out how to
+                    # compare the date_updated fields
+                        # print("Original: ", product_record.product_name, product_record.date_updated)
+                        # print("Duplicate: ", row["product_name"], row["date_updated"])
+                        # input('duplicate')
+                    
+                    # if the first entry was added before, update the fields
+                    if product_record.date_updated < row['date_updated']:
+                        product_record.product_quantity = row['product_quantity']
+                        product_record.product_price = row['product_price']
+                        product_record.date_updated = row['date_updated']
+                        product_record.save()
+                    # if the first entry was added after, do not update the product entry.
+                    # Objective is for the app to only save the data that was most recently
+
 
 def clear():
     """Clear the menu"""
@@ -80,7 +95,7 @@ def clear():
 
 def remove_db():
     """Utilized to prevent multiple databases being initialized/created."""
-    os.system('rm inventory.db')
+    os.system('del /F inventory.db' if os.name == 'nt' else 'rm inventory.db')
 
 def menu_loop():
     """Show the menu"""
@@ -167,8 +182,8 @@ def add_product():
                 raise ValueError("Your product name must be a string.")
 
             product_quantity = int(input("Enter your product quantity, [ENTER] when finished: "))
-            product_price = input("Enter your product price (format: 0.00), [ENTER] when finished: $")
-            
+            product_price = input("Enter your product price (format: 0.00), [ENTER] when finished: $")     
+
             if product_price:
                 list_product_price = list(product_price)
                 for character in list_product_price:
@@ -178,12 +193,12 @@ def add_product():
 
             for product in Product.select():
                 if product.product_name == product_name:
-                    product_record = Product.get(product_name=product_name)
-                    product_record.product_quantity = product_quantity
-                    product_record.product_price = product_price
-                    product_record.date_updated = datetime.datetime.now()
-                    product_record.save()
-                    raise IntegrityError("duplicate item")
+                        product_record = Product.get(product_name=product_name)
+                        product_record.product_quantity = product_quantity
+                        product_record.product_price = product_price
+                        product_record.date_updated = datetime.datetime.now()
+                        product_record.save()
+                        raise IntegrityError("duplicate item")
 
 
         except IntegrityError as err:
@@ -209,12 +224,10 @@ def make_backup():
     loop = True
     while loop:
         try:
-            os.system("rm -f backup.csv")
-            os.system("touch backup.csv")
             products = Product.select()
             print("Backing up current inventory...\n")
             
-            with open("backup.csv", "a") as file:
+            with open("backup.csv", "w") as file:
                 file.write("product_id,product_name,product_quantity,product_price,date_updated\n")
                 for product in products:
                     product_line = "{},{},{},{},{}".format(product.product_id,product.product_name,product.product_quantity,product.product_price,product.date_updated)
