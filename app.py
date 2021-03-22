@@ -122,6 +122,8 @@ def menu_loop():
         if choice in menu:
             clear()
             menu[choice]()
+        elif choice == 'q':
+            quit()
         else:
             print("That isn't a valid menu option. Please try again.")
             input("Press [ENTER] to continue..")
