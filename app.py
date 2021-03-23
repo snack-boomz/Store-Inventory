@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+"""
+Python Web Development Techdegree
+Project 4 - Store Inventory Application
+Author: Trey Annis
+Goal: Meet All 'Exceeds Expectations' Requirements
+--------------------------------
+"""
+
+
 # 5. Create your application file
 # Create a new file in your project directory called app.py. 
 # Be sure to import the appropriate Python and Peewee modules at the top of this file.
